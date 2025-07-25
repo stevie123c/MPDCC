@@ -14,6 +14,18 @@ interface Question {
   answers: Answer[];
 }
 
+// 1. Add multi-team support data structures
+interface TeamState {
+  name: string;
+  score: number;
+  allocations: { [zone: string]: number };
+  revealedZones: string[];
+  revealDone: boolean;
+  revealStep: number;
+  showLockWarning: boolean;
+  // Add more per-team state as needed
+}
+
 const App: React.FC = () => {
   // All hooks at the top
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -33,6 +45,11 @@ const App: React.FC = () => {
   const [revealDone, setRevealDone] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [multiTeamMode, setMultiTeamMode] = useState(false);
+  const [numTeams, setNumTeams] = useState(2);
+  const [teamNames, setTeamNames] = useState<string[]>(["Team 1", "Team 2"]);
+  const [teams, setTeams] = useState<TeamState[]>([]);
+  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
 
   useEffect(() => {
     fetch("/data/questions.json")
@@ -229,7 +246,66 @@ const App: React.FC = () => {
           </ul>
           <div style={{ marginTop: 16 }}><b>Tip:</b> Use the <b>All In</b> button for quick allocation!</div>
         </div>
-        <button onClick={() => setGameStarted(true)} style={{ background: "#FFD700", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.3rem", border: "none", borderRadius: 10, padding: "1rem 3rem", cursor: "pointer", boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>Start Game</button>
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ marginRight: 16 }}>
+            <input type="radio" checked={!multiTeamMode} onChange={() => setMultiTeamMode(false)} /> Single Team
+          </label>
+          <label>
+            <input type="radio" checked={multiTeamMode} onChange={() => setMultiTeamMode(true)} /> Multiple Teams
+          </label>
+        </div>
+        {multiTeamMode && (
+          <div style={{ marginBottom: 24 }}>
+            <label>
+              Number of Teams: 
+              <input type="number" min={2} max={6} value={numTeams} onChange={e => {
+                const n = Math.max(2, Math.min(6, Number(e.target.value)));
+                setNumTeams(n);
+                setTeamNames(prev => Array.from({ length: n }, (_, i) => prev[i] || `Team ${i + 1}`));
+              }} style={{ width: 60, marginLeft: 8 }} />
+            </label>
+            <div style={{ marginTop: 12 }}>
+              {Array.from({ length: numTeams }).map((_, i) => (
+                <div key={i} style={{ marginBottom: 8 }}>
+                  <label>
+                    Team {i + 1} Name: 
+                    <input type="text" value={teamNames[i] || ""} onChange={e => {
+                      const newNames = [...teamNames];
+                      newNames[i] = e.target.value;
+                      setTeamNames(newNames);
+                    }} style={{ marginLeft: 8 }} />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <button onClick={() => {
+          if (multiTeamMode) {
+            setTeams(Array.from({ length: numTeams }, (_, i) => ({
+              name: teamNames[i] || `Team ${i + 1}`,
+              score: 1000000,
+              allocations: {},
+              revealedZones: [],
+              revealDone: false,
+              revealStep: 0,
+              showLockWarning: false,
+            })));
+            setCurrentTeamIndex(0);
+          } else {
+            setTeams([{
+              name: "Team",
+              score: 1000000,
+              allocations: {},
+              revealedZones: [],
+              revealDone: false,
+              revealStep: 0,
+              showLockWarning: false,
+            }]);
+            setCurrentTeamIndex(0);
+          }
+          setGameStarted(true);
+        }} style={{ background: "#FFD700", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.3rem", border: "none", borderRadius: 10, padding: "1rem 3rem", cursor: "pointer", boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>Start Game</button>
       </div>
     );
   }
