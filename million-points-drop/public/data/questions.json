@@ -1,0 +1,96 @@
+[
+  {
+    "round": 1,
+    "question": "Which of these is the capital city of France?",
+    "answers": [
+      { "zone": "A", "text": "Paris", "isCorrect": true },
+      { "zone": "B", "text": "Berlin", "isCorrect": false },
+      { "zone": "C", "text": "Madrid", "isCorrect": false },
+      { "zone": "D", "text": "Rome", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 2,
+    "question": "Which planet is known as the Red Planet?",
+    "answers": [
+      { "zone": "A", "text": "Venus", "isCorrect": false },
+      { "zone": "B", "text": "Mars", "isCorrect": true },
+      { "zone": "C", "text": "Jupiter", "isCorrect": false },
+      { "zone": "D", "text": "Saturn", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 3,
+    "question": "In which sport would you perform a slam dunk?",
+    "answers": [
+      { "zone": "A", "text": "Football", "isCorrect": false },
+      { "zone": "B", "text": "Basketball", "isCorrect": true },
+      { "zone": "C", "text": "Tennis", "isCorrect": false },
+      { "zone": "D", "text": "Swimming", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 4,
+    "question": "What is the largest mammal in the world?",
+    "answers": [
+      { "zone": "A", "text": "Elephant", "isCorrect": false },
+      { "zone": "B", "text": "Blue Whale", "isCorrect": true },
+      { "zone": "C", "text": "Giraffe", "isCorrect": false },
+      { "zone": "D", "text": "Hippopotamus", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 5,
+    "question": "Which of these countries is NOT in Scandinavia?",
+    "answers": [
+      { "zone": "A", "text": "Norway", "isCorrect": false },
+      { "zone": "B", "text": "Sweden", "isCorrect": false },
+      { "zone": "C", "text": "Denmark", "isCorrect": false },
+      { "zone": "D", "text": "Finland", "isCorrect": true }
+    ]
+  },
+  {
+    "round": 6,
+    "question": "Who wrote the novel 'Pride and Prejudice'?",
+    "answers": [
+      { "zone": "A", "text": "Charlotte Brontë", "isCorrect": false },
+      { "zone": "B", "text": "Jane Austen", "isCorrect": true },
+      { "zone": "C", "text": "Charles Dickens", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 7,
+    "question": "What is the chemical symbol for Gold?",
+    "answers": [
+      { "zone": "A", "text": "Go", "isCorrect": false },
+      { "zone": "B", "text": "Au", "isCorrect": true },
+      { "zone": "C", "text": "Ag", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 8,
+    "question": "Which Shakespeare play features the character Lady Macbeth?",
+    "answers": [
+      { "zone": "A", "text": "Hamlet", "isCorrect": false },
+      { "zone": "B", "text": "Macbeth", "isCorrect": true },
+      { "zone": "C", "text": "Romeo and Juliet", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 9,
+    "question": "In which year did World War I begin?",
+    "answers": [
+      { "zone": "A", "text": "1914", "isCorrect": true },
+      { "zone": "B", "text": "1917", "isCorrect": false },
+      { "zone": "C", "text": "1939", "isCorrect": false }
+    ]
+  },
+  {
+    "round": 10,
+    "question": "Which physicist developed the theory of relativity?",
+    "answers": [
+      { "zone": "A", "text": "Isaac Newton", "isCorrect": false },
+      { "zone": "B", "text": "Albert Einstein", "isCorrect": true }
+    ]
+  }
+]
