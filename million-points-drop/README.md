@@ -1,69 +1,40 @@
-# React + TypeScript + Vite
+# Million Points Drop
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based interactive game inspired by the TV show "Million Pound Drop," adapted for team events and office fun! Allocate points, lock in your answers, and see how many points your team can keep until the end.
 
-Currently, two official plugins are available:
+## Project Premise
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Start with 1,000,000 points (P).
+- For each question, split your points across answer zones in increments of 25,000P or 100,000P.
+- At least one zone must be left empty each round.
+- Lock in your allocations before the timer runs out, or it will lock automatically.
+- Reveal wrong answers one by one—points on those zones are lost!
+- Only points on the correct answer survive to the next round.
+- Play through 10 rounds and see how many points your team can keep!
 
-## Expanding the ESLint configuration
+This game is designed for a host to control the UI, with a team playing together in the room.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How to Run Locally
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Install dependencies:**
+   ```
+   cd million-points-drop
+   npm install
+   ```
+2. **Start the development server:**
+   ```
+   npm run dev
+   ```
+3. **Open your browser:**
+   Visit [http://localhost:5173](http://localhost:5173) to play the game.
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Features
+- Interactive point allocation and lock-in
+- Animated zone elimination and correct answer highlight
+- Sound effects for key game events (add your own in `public/sounds/`)
+- Accessible and keyboard-friendly controls
+- Mobile responsive UI
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Enjoy Million Points Drop with your team!
