@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./App.css";
 
 const FIDELITY_GREEN = "#00743A";
@@ -15,19 +15,24 @@ interface Question {
 }
 
 const App: React.FC = () => {
+  // All hooks at the top
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [score, setScore] = useState(1000000);
+  const [scorePop, setScorePop] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const confettiRef = useRef<HTMLDivElement>(null);
   const [timer, setTimer] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerLocked, setTimerLocked] = useState(false);
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [allocations, setAllocations] = useState<{ [zone: string]: number }>({});
   const [showLockWarning, setShowLockWarning] = useState(false);
   const [revealedZones, setRevealedZones] = useState<string[]>([]);
   const [revealInProgress, setRevealInProgress] = useState(false);
   const [revealDone, setRevealDone] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
     fetch("/data/questions.json")
@@ -74,24 +79,23 @@ const App: React.FC = () => {
   const totalReveals = (currentQuestion?.answers.length || 0) - 1;
 
   // Sound effect hooks
-  const playSound = (file: string) => {
-    const audio = new window.Audio(`/sounds/${file}`);
-    audio.volume = 0.5;
-    audio.play();
-  };
+  // Remove playSound function and all calls to playSound
 
   const handleReveal = () => {
     if (!timerLocked || revealInProgress || revealDone) return;
     if (revealStep < revealOrder.length) {
-      setRevealedZones(prev => [...prev, revealOrder[revealStep]]);
+      const zone = revealOrder[revealStep];
+      setRevealedZones(prev => [...prev, zone]);
       setRevealStep(s => s + 1);
-      playSound('reveal-wrong.mp3');
+      // Subtract points from score in real time if there were points on this wrong answer
+      if (allocations[zone] > 0) {
+        setScore(prev => prev - allocations[zone]);
+      }
       // If this is the last wrong answer, next click will highlight correct
       if (revealStep === revealOrder.length - 1) {
         setRevealDone(true);
         setTimeout(() => {
           setScore(allocations[correctZone!] || 0);
-          playSound('reveal-correct.mp3');
         }, 1000);
       }
     } else if (revealStep === revealOrder.length) {
@@ -100,7 +104,6 @@ const App: React.FC = () => {
       setRevealDone(true);
       setTimeout(() => {
         setScore(allocations[correctZone!] || 0);
-        playSound('reveal-correct.mp3');
       }, 1000);
     }
   };
@@ -122,7 +125,6 @@ const App: React.FC = () => {
     if (!timerRunning && !timerLocked && amount > 0) {
       setTimerRunning(true);
       setTimerLocked(false);
-      playSound('timer-start.mp3');
     }
   };
 
@@ -166,7 +168,6 @@ const App: React.FC = () => {
     setTimerLocked(true);
     setTimerRunning(false); // Stop timer if running
     setShowLockWarning(false);
-    playSound('lock-in.mp3');
   };
 
   // Prevent allocating to all zones: if only one empty zone left, block adding to it
@@ -180,9 +181,24 @@ const App: React.FC = () => {
   const isNextEnabled = timerLocked && revealDone;
   const isGameEnd = currentRound === 10 && isNextEnabled;
 
+  // Animate score pop on change
+  useEffect(() => {
+    if (scorePop) return;
+    setScorePop(true);
+    const timeout = setTimeout(() => setScorePop(false), 400);
+    return () => clearTimeout(timeout);
+  }, [score]);
+
+  // Confetti effect when correct answer is revealed
+  useEffect(() => {
+    if (revealDone && revealStep >= totalReveals) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 1200);
+    }
+  }, [revealDone, revealStep, totalReveals]);
+
   // End page logic
   if (isGameEnd) {
-    playSound('end-game.mp3');
     return (
       <div style={{ background: FIDELITY_GREEN, minHeight: "100vh", color: "white", fontFamily: 'Segoe UI, Arial, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: 2, marginBottom: 32 }}>Game Over</h1>
@@ -192,6 +208,28 @@ const App: React.FC = () => {
           <div style={{ fontSize: "2rem", fontWeight: 600, marginBottom: 24 }}>Unlucky! You didn't win any points.</div>
         )}
         <button style={{ background: "#fff", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.1rem", border: "none", borderRadius: 8, padding: "0.7rem 2rem", marginTop: 24, cursor: "pointer" }} onClick={() => window.location.reload()}>Restart Game</button>
+      </div>
+    );
+  }
+
+  if (!gameStarted) {
+    return (
+      <div style={{ background: FIDELITY_GREEN, minHeight: "100vh", color: "white", fontFamily: 'Segoe UI, Arial, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: 2, marginBottom: 24 }}>Welcome to Million Points Drop!</h1>
+        <div style={{ maxWidth: 600, fontSize: "1.2rem", marginBottom: 32, background: 'rgba(0,0,0,0.15)', borderRadius: 12, padding: 24, lineHeight: 1.6 }}>
+          <strong>How to Play:</strong>
+          <ul style={{ textAlign: 'left', margin: '16px 0 0 24px', padding: 0 }}>
+            <li>Start with <b>1,000,000P</b> (points).</li>
+            <li>For each question, split your points across answer zones in increments of <b>25,000P</b> or <b>100,000P</b>.</li>
+            <li><b>At least one zone must be left empty</b> each round.</li>
+            <li>The timer starts when you add points to any zone. Lock in your allocations before the timer runs out, or it will lock automatically.</li>
+            <li>Reveal wrong answers one by one—points on those zones are lost!</li>
+            <li>Only points on the correct answer survive to the next round.</li>
+            <li>Play through 10 rounds and see how many points your team can keep!</li>
+          </ul>
+          <div style={{ marginTop: 16 }}><b>Tip:</b> Use the <b>All In</b> button for quick allocation!</div>
+        </div>
+        <button onClick={() => setGameStarted(true)} style={{ background: "#FFD700", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.3rem", border: "none", borderRadius: 10, padding: "1rem 3rem", cursor: "pointer", boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>Start Game</button>
       </div>
     );
   }
@@ -208,13 +246,35 @@ const App: React.FC = () => {
     border: 0,
   };
 
+  const renderConfetti = () => {
+    if (!showConfetti) return null;
+    const colors = ["#FFD700", "#fff", "#00743A", "#ff4444", "#00bfff"];
+    return (
+      <div className="confetti" ref={confettiRef}>
+        {Array.from({ length: 24 }).map((_, i) => (
+          <div
+            key={i}
+            className="confetti-piece"
+            style={{
+              left: `${Math.random() * 90 - 45}vw`,
+              background: colors[i % colors.length],
+              animationDelay: `${Math.random() * 0.3}s`,
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div style={{ background: FIDELITY_GREEN, minHeight: "100vh", color: "white", fontFamily: 'Segoe UI, Arial, sans-serif' }}>
       <header style={{ padding: "2rem 0 1rem 0", textAlign: "center" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: 2 }}>WI Culture Crew: Million Points Drop</h1>
       </header>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2rem" }}>
-        <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>Total Points: {score.toLocaleString()}P</div>
+        <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+          <span className={scorePop ? "score-pop" : ""}>{score.toLocaleString()}P</span>
+        </div>
         <div style={{ fontSize: "2rem", fontWeight: 700, background: timerLocked ? "#ccc" : timerRunning ? "#fff" : "#fff", color: timerLocked ? "#888" : FIDELITY_GREEN, borderRadius: 12, padding: "0.5rem 2rem", border: timerLocked ? "2px solid #888" : timerRunning ? `2px solid ${FIDELITY_GREEN}` : `2px solid ${FIDELITY_GREEN}` }}>
           {timerLocked ? "Locked" : `${timer}s`}
         </div>
@@ -237,21 +297,21 @@ const App: React.FC = () => {
                   {/* Money allocation controls */}
                   <div style={{ marginTop: 12 }}>
                     <div className={revealedZones.includes(ans.zone) ? 'zone-eliminated' : (revealDone && ans.isCorrect && revealStep >= totalReveals ? 'zone-correct' : '')} style={{ fontWeight: 600, fontSize: "1.1rem", marginBottom: 4, opacity: revealedZones.includes(ans.zone) ? 0.4 : (revealDone && ans.isCorrect && revealStep >= totalReveals ? 1 : 1), textDecoration: revealedZones.includes(ans.zone) ? 'line-through' : (revealDone && ans.isCorrect && revealStep >= totalReveals ? 'underline' : 'none'), color: revealDone && ans.isCorrect && revealStep >= totalReveals ? '#FFD700' : undefined }} aria-live="polite" aria-label={`Zone ${ans.zone} allocation: ${allocations[ans.zone] || 0} points`}>{allocations[ans.zone]?.toLocaleString() || 0}P</div>
-                    <button aria-label={`Add 25,000 points to zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, 25000)} disabled={!canAllocateToZone(ans.zone) || available < 25000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: available < 25000 || !canAllocateToZone(ans.zone) ? "#eee" : FIDELITY_GREEN, color: available < 25000 || !canAllocateToZone(ans.zone) ? "#888" : "#fff", cursor: available < 25000 || !canAllocateToZone(ans.zone) ? "not-allowed" : "pointer" }}>+25k<span style={visuallyHidden}> to zone {ans.zone}</span></button>
-                    <button aria-label={`Add 100,000 points to zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, 100000)} disabled={!canAllocateToZone(ans.zone) || available < 100000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: available < 100000 || !canAllocateToZone(ans.zone) ? "#eee" : FIDELITY_GREEN, color: available < 100000 || !canAllocateToZone(ans.zone) ? "#888" : "#fff", cursor: available < 100000 || !canAllocateToZone(ans.zone) ? "not-allowed" : "pointer" }}>+100k<span style={visuallyHidden}> to zone {ans.zone}</span></button>
-                    <button aria-label={`Remove 25,000 points from zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, -25000)} disabled={timerLocked || allocations[ans.zone] < 25000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: allocations[ans.zone] < 25000 || timerLocked ? "#eee" : FIDELITY_GREEN, color: allocations[ans.zone] < 25000 || timerLocked ? "#888" : "#fff", cursor: allocations[ans.zone] < 25000 || timerLocked ? "not-allowed" : "pointer" }}>-25k<span style={visuallyHidden}> from zone {ans.zone}</span></button>
-                    <button aria-label={`Remove 100,000 points from zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, -100000)} disabled={timerLocked || allocations[ans.zone] < 100000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: allocations[ans.zone] < 100000 || timerLocked ? "#eee" : FIDELITY_GREEN, color: allocations[ans.zone] < 100000 || timerLocked ? "#888" : "#fff", cursor: allocations[ans.zone] < 100000 || timerLocked ? "not-allowed" : "pointer" }}>-100k<span style={visuallyHidden}> from zone {ans.zone}</span></button>
-                    <button aria-label={`All in on zone ${ans.zone}`} onClick={() => handleAllIn(ans.zone)} disabled={timerLocked || allocations[ans.zone] === score} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: timerLocked || allocations[ans.zone] === score ? "#eee" : "#FFD700", color: timerLocked || allocations[ans.zone] === score ? "#888" : FIDELITY_GREEN, cursor: timerLocked || allocations[ans.zone] === score ? "not-allowed" : "pointer" }}>All In<span style={visuallyHidden}> on zone {ans.zone}</span></button>
+                    <button className="button" aria-label={`Add 25,000 points to zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, 25000)} disabled={!canAllocateToZone(ans.zone) || available < 25000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: available < 25000 || !canAllocateToZone(ans.zone) ? "#eee" : FIDELITY_GREEN, color: available < 25000 || !canAllocateToZone(ans.zone) ? "#888" : "#fff", cursor: available < 25000 || !canAllocateToZone(ans.zone) ? "not-allowed" : "pointer" }}>+25k<span style={visuallyHidden}> to zone {ans.zone}</span></button>
+                    <button className="button" aria-label={`Add 100,000 points to zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, 100000)} disabled={!canAllocateToZone(ans.zone) || available < 100000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: available < 100000 || !canAllocateToZone(ans.zone) ? "#eee" : FIDELITY_GREEN, color: available < 100000 || !canAllocateToZone(ans.zone) ? "#888" : "#fff", cursor: available < 100000 || !canAllocateToZone(ans.zone) ? "not-allowed" : "pointer" }}>+100k<span style={visuallyHidden}> to zone {ans.zone}</span></button>
+                    <button className="button" aria-label={`Remove 25,000 points from zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, -25000)} disabled={timerLocked || allocations[ans.zone] < 25000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: allocations[ans.zone] < 25000 || timerLocked ? "#eee" : FIDELITY_GREEN, color: allocations[ans.zone] < 25000 || timerLocked ? "#888" : "#fff", cursor: allocations[ans.zone] < 25000 || timerLocked ? "not-allowed" : "pointer" }}>-25k<span style={visuallyHidden}> from zone {ans.zone}</span></button>
+                    <button className="button" aria-label={`Remove 100,000 points from zone ${ans.zone}`} onClick={() => adjustAllocation(ans.zone, -100000)} disabled={timerLocked || allocations[ans.zone] < 100000} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: allocations[ans.zone] < 100000 || timerLocked ? "#eee" : FIDELITY_GREEN, color: allocations[ans.zone] < 100000 || timerLocked ? "#888" : "#fff", cursor: allocations[ans.zone] < 100000 || timerLocked ? "not-allowed" : "pointer" }}>-100k<span style={visuallyHidden}> from zone {ans.zone}</span></button>
+                    <button className="button" aria-label={`All in on zone ${ans.zone}`} onClick={() => handleAllIn(ans.zone)} disabled={timerLocked || allocations[ans.zone] === score} style={{ margin: 2, padding: "0.3rem 0.7rem", fontWeight: 700, borderRadius: 6, border: "none", background: timerLocked || allocations[ans.zone] === score ? "#eee" : "#FFD700", color: timerLocked || allocations[ans.zone] === score ? "#888" : FIDELITY_GREEN, cursor: timerLocked || allocations[ans.zone] === score ? "not-allowed" : "pointer" }}>All In<span style={visuallyHidden}> on zone {ans.zone}</span></button>
                   </div>
                 </div>
               ))}
             </div>
             {/* Host controls restored */}
             <div style={{ marginTop: 40, textAlign: "center" }}>
-              <button aria-label="Lock in allocations" style={{ background: "#fff", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.1rem", border: "none", borderRadius: 8, padding: "0.7rem 2rem", margin: "0 1rem", cursor: canLockIn ? "pointer" : "not-allowed" }} onClick={handleLockIn} disabled={!canLockIn}>Lock In</button>
-              <button aria-label="Reveal answers" style={{ background: "#fff", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.1rem", border: "none", borderRadius: 8, padding: "0.7rem 2rem", margin: "0 1rem", cursor: revealDone || !timerLocked || revealStep > totalReveals ? "not-allowed" : "pointer" }} onClick={handleReveal} disabled={revealDone || !timerLocked || revealStep > totalReveals}>Reveal</button>
-              <button aria-label="Go to previous question" style={{ background: "#fff", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.1rem", border: "none", borderRadius: 8, padding: "0.7rem 2rem", margin: "0 1rem", cursor: "pointer" }} onClick={goToPrevious} disabled={currentRound === 1}>Previous</button>
-              <button aria-label="Go to next question" style={{ background: "#fff", color: FIDELITY_GREEN, fontWeight: 700, fontSize: "1.1rem", border: "none", borderRadius: 8, padding: "0.7rem 2rem", margin: "0 1rem", cursor: isNextEnabled ? "pointer" : "not-allowed" }} onClick={goToNext} disabled={!isNextEnabled || currentRound === 10}>Next</button>
+              <button className="button" aria-label="Lock in allocations" onClick={handleLockIn} disabled={!canLockIn}>Lock In</button>
+              <button className="button" aria-label="Reveal answers" onClick={handleReveal} disabled={revealDone || !timerLocked || revealStep > totalReveals}>Reveal</button>
+              <button className="button" aria-label="Go to previous question" onClick={goToPrevious} disabled={currentRound === 1}>Previous</button>
+              <button className="button" aria-label="Go to next question" onClick={goToNext} disabled={!isNextEnabled || currentRound === 10}>Next</button>
             </div>
             {showLockWarning && (
               <div style={{ color: "#ff4444", fontWeight: 700, marginTop: 12 }}>
@@ -264,6 +324,7 @@ const App: React.FC = () => {
           <div style={{ textAlign: "center", fontSize: 24, marginTop: 40 }}>Loading...</div>
         )}
       </main>
+      {renderConfetti()}
     </div>
   );
 };
